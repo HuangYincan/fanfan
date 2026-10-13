@@ -167,7 +167,7 @@ else
     exit 1
 fi
 
-# Sparkle, innermost first (same order as release.yml's inner-binaries).
+# Sparkle, innermost first (the same items release.yml's `inner-binaries: auto` finds in CI).
 SPARKLE="$RELEASE_APP/Contents/Frameworks/Sparkle.framework"
 for target in \
     "$SPARKLE/Versions/B/Autoupdate" \

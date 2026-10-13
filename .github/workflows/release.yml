@@ -32,14 +32,11 @@ jobs:
       app-path: release/fanfan.app
       build-command: ./scripts/ci-build.sh && ./scripts/release-notes.sh
       artifact-basename: fanfan
-      # Nested code must carry its own signature before the outer bundle is
-      # sealed, innermost first. ci-build.sh strips Sparkle's XPC services,
+      # Nested code (fanfan-smcd, Sparkle's Autoupdate, Updater.app and the
+      # framework) is found and signed innermost first, so a Sparkle upgrade
+      # needs no list to maintain. ci-build.sh strips Sparkle's XPC services,
       # which a non-sandboxed app never uses.
-      inner-binaries: |
-        Contents/Resources/fanfan-smcd
-        Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate
-        Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app
-        Contents/Frameworks/Sparkle.framework
+      inner-binaries: auto
       entitlements: fanfan/Resources/fanfan.entitlements
       make-dmg: true
       dmg-volume-name: FanFan

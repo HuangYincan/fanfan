@@ -75,7 +75,7 @@ Debug 版（`com.hoobnn.fanfan.debug`）与正式版注册的是同一个 label 
 
 需要 `Developer ID Application: HAOBIN WU (8FUPL8QHFH)` 证书和名为 `fanfan-notarize` 的 `notarytool` 钥匙串配置（`NOTARY_PROFILE=…` 可覆盖）。产物在 `releases/`。CI 经 `.github/workflows/release.yml` 在 `v*` tag 上跑同一套流水线（先复用 `ci.yml` 跑单元测试，再签名公证发布，最后经 `ci-workflows` 的 `homebrew-cask.yml` 同步 cask，并调用 `pages.yml` 重新生成 Sparkle appcast）；平时推送 main 和 PR 只跑 `ci.yml`。
 
-Sparkle 相关：`ci-build.sh` 用 `scripts/strip-sparkle-xpc.sh` 删掉 `Sparkle.framework` 里的 `XPCServices`（非沙盒应用用不到，且 CI 重签会丢掉 Downloader.xpc 的 entitlements）；`release.yml` 的 `inner-binaries` 按 daemon → Autoupdate → Updater.app → Sparkle.framework 的顺序先签内层；`sparkle: true` 让共享工作流用 secret `SPARKLE_ED_PRIVATE_KEY` 签 zip 并发布 `.zip.sparkle.json`；`pages.yml` 用 `sparkle-appcast` action 从 Releases 生成 `appcast.xml`（不进仓库）。Sparkle 按 `CFBundleVersion` 比较版本，所以每次发版必须递增 `CURRENT_PROJECT_VERSION`。tag 触发的 `pages` 任务要求 `github-pages` 环境的部署策略允许 `v*` tag。
+Sparkle 相关：`ci-build.sh` 用 `scripts/strip-sparkle-xpc.sh` 删掉 `Sparkle.framework` 里的 `XPCServices`（非沙盒应用用不到，且 CI 重签会丢掉 Downloader.xpc 的 entitlements）；`release.yml` 用 `inner-binaries: auto`，由共享工作流自动找出 daemon、Autoupdate、Updater.app 和 Sparkle.framework，按路径深度由内向外先签，升级 Sparkle 不用改清单；`sparkle: true` 让共享工作流用 secret `SPARKLE_ED_PRIVATE_KEY` 签 zip 并发布 `.zip.sparkle.json`；`pages.yml` 用 `sparkle-appcast` action 从 Releases 生成 `appcast.xml`（不进仓库）。Sparkle 按 `CFBundleVersion` 比较版本，所以每次发版必须递增 `CURRENT_PROJECT_VERSION`。tag 触发的 `pages` 任务要求 `github-pages` 环境的部署策略允许 `v*` tag。
 
 推 tag 前按顺序：
 
