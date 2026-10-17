@@ -52,3 +52,13 @@ jobs:
             -destination 'platform=macOS' \
             CODE_SIGNING_ALLOWED=NO \
             test
+
+      - name: Build local hash-pinned app and installer
+        run: bash local-support/build.sh
+
+      - name: Upload local installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: fanfan-local-arm64
+          path: fanfan-local-arm64.tar.gz
+          retention-days: 7

@@ -1,0 +1,40 @@
+        // The installed, hash-pinned app itself exercises the XPC connection.
+        // This path exits before monitoring or UI control loops can start.
+        let localArguments = ProcessInfo.processInfo.arguments
+        if localArguments.contains("--local-helper-status") || localArguments.contains("--local-self-test") {
+            let performWrites = localArguments.contains("--local-self-test")
+            var targets: [Int] = []
+            if performWrites {
+                let monitor = SystemMonitor()
+                guard monitor.checkAccess() else { print("LOCAL_SELF_TEST=no-smc-access"); exit(2) }
+                for fan in 0..<8 {
+                    guard monitor.readSMCValue(key: "F\(fan)Ac") != nil else { break }
+                    guard let maximum = monitor.readSMCValue(key: "F\(fan)Mx"), maximum > 0 else { exit(2) }
+                    targets.append(Int(maximum.rounded()))
+                }
+                guard !targets.isEmpty else { exit(2) }
+            }
+            let maximumTargets = targets
+            DispatchQueue.global(qos: .userInitiated).async {
+                guard let state = SMCDaemonClient.pingState() else { print("LOCAL_HELPER_STATUS=unavailable"); exit(1) }
+                print("LOCAL_HELPER_STATUS=\(state.rawValue)")
+                if performWrites {
+                    var manualOK = true
+                    for (fan, maximum) in maximumTargets.enumerated() {
+                        if !SMCDaemonClient.setFanSpeed(fanIndex: fan, rpm: maximum) { manualOK = false }
+                    }
+                    // Maximum RPM briefly confirms manual writes without reducing cooling.
+                    Thread.sleep(forTimeInterval: 1)
+                    var systemOK = true
+                    for fan in maximumTargets.indices {
+                        if !SMCDaemonClient.setFanAuto(fanIndex: fan) { systemOK = false }
+                    }
+                    print("LOCAL_SELF_TEST manual=\(manualOK) system=\(systemOK)")
+                    fflush(stdout)
+                    exit(manualOK && systemOK ? 0 : 1)
+                }
+                fflush(stdout)
+                exit(0)
+            }
+            return
+        }

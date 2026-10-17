@@ -18,3 +18,6 @@ node_modules/
 release_notes.md
 release/
 *.noindex/
+/local-dist/
+/fanfan-local-arm64.tar.gz
+/local-support/__pycache__/
