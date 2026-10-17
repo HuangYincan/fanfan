@@ -80,6 +80,11 @@ text = client_file.read_text().replace('"com.hoobnn.fanfan.helper"', '"com.huang
 text = re.sub(r'(nonisolated private static let daemonRequirement =\n)\s+"[^\n]+"',
               lambda match: match[1] + "        " + json.dumps(helper_requirement), text, count=1)
 assert helper_hash in text
+text = text.replace("enum SMCDaemonClient {", """enum SMCDaemonClient {
+    nonisolated static func localCommandResponse(_ command: String) -> String? {
+        send(command)
+    }
+""", 1)
 client_file.write_text(text)
 for name in ("PermissionsManager.swift", "AppUpdater.swift"):
     shutil.copy2(SUPPORT / name, source / "fanfan/Core" / name)
@@ -119,7 +124,9 @@ run("xcodebuild", "-project", str(source / "fanfan.xcodeproj"), "-scheme", "fanf
     "-configuration", "Release", "-derivedDataPath", str(stage / "derived"),
     "-destination", "generic/platform=macOS", "CODE_SIGNING_ALLOWED=NO",
     "DEVELOPMENT_TEAM=", "ARCHS=arm64", "ONLY_ACTIVE_ARCH=YES",
-    "MARKETING_VERSION=1.8.2", "CURRENT_PROJECT_VERSION=3301", "build")
+    "ENABLE_CODE_COVERAGE=NO", "CLANG_COVERAGE_MAPPING=NO",
+    "GCC_GENERATE_TEST_COVERAGE_FILES=NO", "GCC_INSTRUMENT_PROGRAM_FLOW_ARCS=NO",
+    "MARKETING_VERSION=1.8.2", "CURRENT_PROJECT_VERSION=3302", "build")
 app = stage / "derived/Build/Products/Release/fanfan.app"
 assert not (app / "Contents/Frameworks/Sparkle.framework").exists()
 run("codesign", "--force", "--sign", "-", "--options", "runtime",
@@ -136,7 +143,7 @@ for requirement in (app_requirement, helper_requirement):
 run("ditto", str(app), str(dist / "fanfan.app"))
 (dist / "client.requirement").write_text(app_requirement + "\n")
 manifest = {
-    "version": "1.8.2", "build": "3301", "flavor": "local-hash-pinned",
+    "version": "1.8.2", "build": "3302", "flavor": "local-hash-pinned",
     "sourceCommit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
     "appRequirement": app_requirement, "helperRequirement": helper_requirement,
     "appCodeHash": app_hash, "helperCodeHash": helper_hash,

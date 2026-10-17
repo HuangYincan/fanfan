@@ -64,7 +64,7 @@ done
 from pathlib import Path
 import hashlib,json,plistlib,re,subprocess,sys
 p=Path(sys.argv[1]); m=json.loads((p/'manifest.json').read_text())
-assert m['flavor']=='local-hash-pinned' and m['version']=='1.8.2' and m['build']=='3301'
+assert m['flavor']=='local-hash-pinned' and m['version']=='1.8.2' and m['build']=='3302'
 for key in ['appCodeHash','helperCodeHash']:
     assert re.fullmatch('[0-9a-f]{40}',m[key])
 assert m['appRequirement']==f'identifier "com.hoobnn.fanfan" and cdhash H"{m["appCodeHash"]}"'
@@ -73,7 +73,7 @@ assert (p/'client.requirement').read_text().strip()==m['appRequirement']
 assert hashlib.sha256((p/'fanfan-local-smcd').read_bytes()).hexdigest()==m['helperSHA256']
 app=p/'fanfan.app'; info=plistlib.loads((app/'Contents/Info.plist').read_bytes())
 assert info['CFBundleIdentifier']=='com.hoobnn.fanfan'
-assert info['CFBundleShortVersionString']=='1.8.2' and info['CFBundleVersion']=='3301'
+assert info['CFBundleShortVersionString']=='1.8.2' and info['CFBundleVersion']=='3302'
 assert info['FanFanBuildFlavor']=='local-hash-pinned' and 'SUFeedURL' not in info
 assert not (app/'Contents/Frameworks/Sparkle.framework').exists()
 for target,req in [(app,m['appRequirement']),(p/'fanfan-local-smcd',m['helperRequirement'])]:
@@ -154,5 +154,5 @@ PY
 # with the same bundle identifier where Launch Services can select it.
 if [ -d "$OLD_APP" ]; then /bin/rm -rf "$OLD_APP"; fi
 MUTATING=0
-echo "INSTALL_OK: FanFan 1.8.2 本机版 (3301)"
+echo "INSTALL_OK: FanFan 1.8.2 本机版 (3302)"
 echo "Rollback: sudo /bin/bash '$SUPPORT_DIR/rollback.sh'"

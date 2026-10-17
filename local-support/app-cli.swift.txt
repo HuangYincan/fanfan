@@ -22,14 +22,46 @@
                 if performWrites {
                     var manualOK = true
                     for (fan, maximum) in maximumTargets.enumerated() {
-                        if !SMCDaemonClient.setFanSpeed(fanIndex: fan, rpm: maximum) { manualOK = false }
+                        let reply = SMCDaemonClient.localCommandResponse("SETV2 \(fan) \(maximum)")
+                        print("LOCAL_SET fan=\(fan) rpm=\(maximum) reply=\(reply ?? "no-reply")")
+                        if reply != "OK" { manualOK = false }
                     }
-                    // Maximum RPM briefly confirms manual writes without reducing cooling.
-                    Thread.sleep(forTimeInterval: 1)
+                    if manualOK {
+                        var observed: [[Int]] = []
+                        var verified = false
+                        for _ in 0..<25 {
+                            observed = DispatchQueue.main.sync {
+                                let monitor = SystemMonitor()
+                                return maximumTargets.indices.map { fan in
+                                    ["Md", "Tg", "Ac"].map { suffix in
+                                        Int(monitor.readSMCValue(key: "F\(fan)\(suffix)") ?? -1)
+                                    }
+                                }
+                            }
+                            verified = observed.indices.allSatisfy { fan in
+                                observed[fan][0] == 1 && abs(observed[fan][1] - maximumTargets[fan]) <= 1 && observed[fan][2] > 0
+                            }
+                            if verified { break }
+                            Thread.sleep(forTimeInterval: 0.2)
+                        }
+                        print("LOCAL_MANUAL_READBACK [mode,target,rpm]=\(observed)")
+                        manualOK = verified
+                    }
+                    // Always restore, including when SET or physical verification failed.
                     var systemOK = true
                     for fan in maximumTargets.indices {
-                        if !SMCDaemonClient.setFanAuto(fanIndex: fan) { systemOK = false }
+                        let reply = SMCDaemonClient.localCommandResponse("AUTOV2 \(fan)")
+                        print("LOCAL_AUTO fan=\(fan) reply=\(reply ?? "no-reply")")
+                        if reply != "OK" { systemOK = false }
                     }
+                    let systemModes: [Int] = DispatchQueue.main.sync {
+                        let monitor = SystemMonitor()
+                        return maximumTargets.indices.map { fan in
+                            Int(monitor.readSMCValue(key: "F\(fan)Md") ?? -1)
+                        }
+                    }
+                    print("LOCAL_SYSTEM_MODES=\(systemModes)")
+                    systemOK = systemOK && systemModes.allSatisfy { $0 == 0 || $0 == 3 }
                     print("LOCAL_SELF_TEST manual=\(manualOK) system=\(systemOK)")
                     fflush(stdout)
                     exit(manualOK && systemOK ? 0 : 1)

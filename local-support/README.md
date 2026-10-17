@@ -4,7 +4,7 @@
 `fix/system-control-recovery`，不要把本机安装和签名调整带入上游 PR。
 
 运行 `bash local-support/build.sh` 需要 macOS 26 SDK。构建在独立源代码副本中进行，
-输出 `fanfan-local-arm64.tar.gz`，版本为 1.8.2 (3301)，界面标明“本机版”。
+输出 `fanfan-local-arm64.tar.gz`，版本为 1.8.2 (3302)，界面标明“本机版”。
 该压缩包是构建产物，不是公开 Release。
 
 App 保留原 bundle ID 和偏好设置，关闭 Sparkle 更新。App 和辅助程序均使用
@@ -24,7 +24,8 @@ ad-hoc 签名及 hardened runtime，双方通过精确 CodeDirectory 哈希校�
 /absolute/path/unauthorized-probe
 ```
 
-先退出正常运行的 App 再执行自检。自检短暂请求硬件最大转速，然后交回系统。
+先退出正常运行的 App 再执行自检。自检短暂请求硬件最大转速，核对模式、目标值和
+实际起转，再交回系统。每次 SET/AUTO 都打印真实辅助程序回复。
 必须先确认 App PING 成功，再使用负向测试验证同 bundle ID、不同哈希的程序被拒绝；
 测试后再次确认 App PING 成功且辅助程序没有重启，排除服务崩溃造成的错误回复。
 
