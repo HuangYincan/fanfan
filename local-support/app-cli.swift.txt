@@ -10,7 +10,8 @@
                 for fan in 0..<8 {
                     guard monitor.readSMCValue(key: "F\(fan)Ac") != nil else { break }
                     guard let maximum = monitor.readSMCValue(key: "F\(fan)Mx"), maximum > 0 else { exit(2) }
-                    targets.append(Int(maximum.rounded()))
+                    // Match the helper's integer conversion of the hardware limit.
+                    targets.append(Int(maximum))
                 }
                 guard !targets.isEmpty else { exit(2) }
             }
