@@ -16,7 +16,10 @@ int main(void)
     xpc_object_t message = xpc_dictionary_create_empty();
     xpc_dictionary_set_string(message, "line", "PINGV2");
     xpc_connection_send_message_with_reply(connection, message, queue, ^(xpc_object_t reply) {
-        rejected = xpc_get_type(reply) == XPC_TYPE_ERROR && reply == XPC_ERROR_CONNECTION_INVALID;
+        // A peer requirement failure is delivered as INTERRUPTED on macOS 27.
+        // Verify the real app can PING before and after this negative check.
+        rejected = xpc_get_type(reply) == XPC_TYPE_ERROR &&
+            (reply == XPC_ERROR_CONNECTION_INVALID || reply == XPC_ERROR_CONNECTION_INTERRUPTED);
         dispatch_semaphore_signal(done);
     });
     if (dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC))) {

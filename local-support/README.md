@@ -25,7 +25,8 @@ ad-hoc 签名及 hardened runtime，双方通过精确 CodeDirectory 哈希校�
 ```
 
 先退出正常运行的 App 再执行自检。自检短暂请求硬件最大转速，然后交回系统。
-必须先确认 App PING 成功，再使用负向测试验证同 bundle ID、不同哈希的程序被拒绝。
+必须先确认 App PING 成功，再使用负向测试验证同 bundle ID、不同哈希的程序被拒绝；
+测试后再次确认 App PING 成功且辅助程序没有重启，排除服务崩溃造成的错误回复。
 
 原版恢复入口：
 
