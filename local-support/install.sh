@@ -77,7 +77,7 @@ assert info['CFBundleShortVersionString']=='1.8.2' and info['CFBundleVersion']==
 assert info['FanFanBuildFlavor']=='local-hash-pinned' and 'SUFeedURL' not in info
 assert not (app/'Contents/Frameworks/Sparkle.framework').exists()
 for target,req in [(app,m['appRequirement']),(p/'fanfan-local-smcd',m['helperRequirement'])]:
-    subprocess.run(['codesign','--verify','--deep','--strict','-R',req,str(target)],check=True)
+    subprocess.run(['codesign','--verify','--deep','--strict','-R','='+req,str(target)],check=True)
     result=subprocess.run(['codesign','-d','--verbose=4',str(target)],capture_output=True,text=True,check=True)
     assert re.search(r'flags=.*runtime',result.stderr), 'Hardened runtime missing'
 result=subprocess.run(['codesign','-d','--entitlements',':-',str(app)],capture_output=True,check=True)

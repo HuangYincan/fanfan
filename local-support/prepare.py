@@ -127,10 +127,10 @@ run("codesign", "--force", "--sign", "-", "--options", "runtime",
 run("codesign", "--verify", "--deep", "--strict", str(app))
 app_hash = code_hash(app)
 app_requirement = f'identifier "com.hoobnn.fanfan" and cdhash H"{app_hash}"'
-run("codesign", "--verify", "--strict", "-R", app_requirement, str(app))
-run("codesign", "--verify", "--strict", "-R", helper_requirement, str(helper))
+run("codesign", "--verify", "--strict", "-R", "=" + app_requirement, str(app))
+run("codesign", "--verify", "--strict", "-R", "=" + helper_requirement, str(helper))
 for requirement in (app_requirement, helper_requirement):
-    bad = subprocess.run(["codesign", "--verify", "-R", requirement, "/usr/bin/true"], capture_output=True)
+    bad = subprocess.run(["codesign", "--verify", "-R", "=" + requirement, "/usr/bin/true"], capture_output=True)
     assert bad.returncode != 0, "An unrelated binary matched the peer pin"
 
 run("ditto", str(app), str(dist / "fanfan.app"))
