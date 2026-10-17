@@ -2,12 +2,6 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · [SemVer](https://semver.org/spec/v2.0.0.html)
 
-## [1.8.2] - 2026-10-17
-
-### Fixed
-- System mode no longer keeps an old fan-setting failure warning after the helper recovers. Failed requests to return fan control to macOS are retried with backoff; the warning clears only after the helper confirms success.
-- Pending system-mode retries are discarded when switching modes, starting a newer restore request, or shutting down, so they cannot interfere with the user's next selection.
-
 ## [1.8.1] - 2026-10-10
 
 ### Changed
