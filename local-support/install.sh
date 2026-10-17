@@ -16,6 +16,7 @@ OLD_APP="/Applications/.fanfan-before-local-$(date -u +%Y%m%dT%H%M%SZ).app"
 WAS_LOCAL=0
 MUTATING=0
 APP_COPY_STARTED=0
+KEEP_STAGE=0
 PREVIOUS_FILES=("$HELPER" "$PLIST" "$SUPPORT_DIR/client.requirement" "$SUPPORT_DIR/manifest.json")
 finish() {
     status=$?
@@ -24,30 +25,41 @@ finish() {
         set +e
         echo 'Installation failed; restoring the previous installation' >&2
         "$INSTALL_STAGE/fanfan-local-smcd" --restore-system
-        /bin/launchctl bootout "system/$SERVICE" 2>/dev/null
-        if [ "$APP_COPY_STARTED" -eq 1 ]; then
-            /bin/rm -rf "$APP"
-            if [ -d "$OLD_APP" ]; then /bin/mv "$OLD_APP" "$APP"; fi
-        fi
-        for index in "${!PREVIOUS_FILES[@]}"; do
-            target="${PREVIOUS_FILES[$index]}"
-            /bin/rm -f "$target"
-            if [ -f "$INSTALL_STAGE/previous-$index" ]; then
-                /bin/cp -p "$INSTALL_STAGE/previous-$index" "$target"
-            fi
-        done
-        if [ "$WAS_LOCAL" -eq 1 ]; then
-            /bin/launchctl enable "system/$SERVICE"
-            /bin/launchctl bootstrap system "$PLIST"
-            /bin/launchctl kickstart "system/$SERVICE"
+        if ! fanfan_stop_service "system/$SERVICE"; then
+            echo "Rollback could not stop the current helper; previous files preserved in $INSTALL_STAGE and $OLD_APP" >&2
+            KEEP_STAGE=1
         else
-            /bin/launchctl enable "system/$OLD_SERVICE"
-            /bin/launchctl bootstrap system "$APP/Contents/Library/LaunchDaemons/$OLD_SERVICE.plist" 2>/dev/null
-            /bin/launchctl kickstart "system/$OLD_SERVICE" 2>/dev/null
+            restore_errors=0
+            if [ "$APP_COPY_STARTED" -eq 1 ]; then
+                /bin/rm -rf "$APP" || restore_errors=1
+                if [ -d "$OLD_APP" ]; then /bin/mv "$OLD_APP" "$APP" || restore_errors=1; fi
+            fi
+            for index in "${!PREVIOUS_FILES[@]}"; do
+                target="${PREVIOUS_FILES[$index]}"
+                /bin/rm -f "$target" || restore_errors=1
+                if [ -f "$INSTALL_STAGE/previous-$index" ]; then
+                    /bin/cp -p "$INSTALL_STAGE/previous-$index" "$target" || restore_errors=1
+                fi
+            done
+            if [ "$restore_errors" -ne 0 ]; then
+                echo "Rollback could not restore every file; recovery data retained in $INSTALL_STAGE" >&2
+                KEEP_STAGE=1
+            elif [ "$WAS_LOCAL" -eq 1 ]; then
+                if fanfan_start_service "system/$SERVICE" "$PLIST"; then
+                    echo 'Previous app, files, and running helper restored; reopen /Applications/fanfan.app' >&2
+                else
+                    echo "Previous files restored, but the helper did not start; recovery data retained in $INSTALL_STAGE" >&2
+                    KEEP_STAGE=1
+                fi
+            else
+                /bin/launchctl enable "system/$OLD_SERVICE"
+                /bin/launchctl bootstrap system "$APP/Contents/Library/LaunchDaemons/$OLD_SERVICE.plist" 2>/dev/null
+                /bin/launchctl kickstart "system/$OLD_SERVICE" 2>/dev/null
+                echo 'Previous official app files restored; open /Applications/fanfan.app to verify or re-register its helper' >&2
+            fi
         fi
-        echo 'Previous files restored; reopen /Applications/fanfan.app' >&2
     fi
-    /bin/rm -rf "$INSTALL_STAGE"
+    if [ "$KEEP_STAGE" -eq 0 ]; then /bin/rm -rf "$INSTALL_STAGE"; fi
     exit "$status"
 }
 trap finish EXIT
@@ -55,7 +67,7 @@ trap finish EXIT
 # Stage under root ownership before validating, to avoid changing user-owned
 # inputs between signature verification and installation.
 /usr/bin/ditto "$PACKAGE_DIR/fanfan.app" "$INSTALL_STAGE/fanfan.app"
-for file in fanfan-local-smcd manifest.json client.requirement rollback.sh; do
+for file in fanfan-local-smcd manifest.json client.requirement rollback.sh launchd-service.sh; do
     /bin/cp "$PACKAGE_DIR/$file" "$INSTALL_STAGE/$file"
 done
 /usr/sbin/chown -R root:wheel "$INSTALL_STAGE"
@@ -87,6 +99,7 @@ for key in ['com.apple.security.get-task-allow','com.apple.security.cs.disable-l
     assert not entitlements.get(key,False),key
 print('Verified exact peer hashes, signed resources, hardened runtime, and disabled upstream updates')
 PY
+source "$INSTALL_STAGE/launchd-service.sh"
 
 /usr/bin/install -d -o root -g wheel -m 755 "$SUPPORT_DIR" "$SUPPORT_DIR/backups" /Library/PrivilegedHelperTools
 BACKUP="$SUPPORT_DIR/backups/official-$(date -u +%Y%m%dT%H%M%SZ).zip"
@@ -102,6 +115,7 @@ if [ -d "$APP" ]; then
         printf '%s\n' "$BACKUP" > "$SUPPORT_DIR/last-backup"
     fi
 fi
+/usr/bin/install -o root -g wheel -m 644 "$INSTALL_STAGE/launchd-service.sh" "$SUPPORT_DIR/launchd-service.sh"
 /usr/bin/install -o root -g wheel -m 755 "$INSTALL_STAGE/rollback.sh" "$SUPPORT_DIR/rollback.sh"
 for index in "${!PREVIOUS_FILES[@]}"; do
     if [ -f "${PREVIOUS_FILES[$index]}" ]; then
@@ -122,8 +136,8 @@ fi
 "$INSTALL_STAGE/fanfan-local-smcd" --restore-system
 MUTATING=1
 /bin/launchctl disable "system/$OLD_SERVICE" 2>/dev/null || true
-/bin/launchctl bootout "system/$OLD_SERVICE" 2>/dev/null || true
-/bin/launchctl bootout "system/$SERVICE" 2>/dev/null || true
+fanfan_stop_service "system/$OLD_SERVICE"
+fanfan_stop_service "system/$SERVICE"
 
 # Keep a same-volume copy until the replacement has been copied successfully.
 if [ -d "$APP" ]; then /bin/mv "$APP" "$OLD_APP"; fi
@@ -143,12 +157,9 @@ with open(sys.argv[1],'wb') as f:
 PY
 /usr/sbin/chown root:wheel "$PLIST"
 /bin/chmod 644 "$PLIST"
-/bin/launchctl enable "system/$SERVICE"
-/bin/launchctl bootstrap system "$PLIST"
-/bin/launchctl kickstart "system/$SERVICE"
+fanfan_start_service "system/$SERVICE" "$PLIST"
 /usr/bin/codesign --verify --deep --strict "$APP"
 "$HELPER" --status
-/bin/launchctl print "system/$SERVICE" | /usr/bin/grep -q 'state = running'
 
 # The zip is the durable rollback copy; do not leave another launchable app
 # with the same bundle identifier where Launch Services can select it.

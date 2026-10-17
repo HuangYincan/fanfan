@@ -154,7 +154,7 @@ run("xcrun", "clang", "-fblocks", "-arch", "arm64", "-mmacosx-version-min=26.0",
     str(dist / "unauthorized-probe"), str(SUPPORT / "unauthorized-probe.c"))
 run("codesign", "--force", "--sign", "-", "--options", "runtime", "--identifier",
     "com.hoobnn.fanfan", str(dist / "unauthorized-probe"))
-for name in ("install.sh", "rollback.sh"):
+for name in ("install.sh", "rollback.sh", "launchd-service.sh"):
     shutil.copy2(SUPPORT / name, dist / name)
 archive = ROOT / "fanfan-local-arm64.tar.gz"
 run("tar", "-czf", str(archive), "-C", str(dist), ".")

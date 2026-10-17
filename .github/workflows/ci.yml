@@ -57,7 +57,10 @@ jobs:
             test
 
       - name: Build local hash-pinned app and installer
-        run: bash local-support/build.sh
+        # Installer tests replace OS calls; they never modify the runner's launchd.
+        run: |
+          bash local-support/test-launchd-service.sh
+          bash local-support/build.sh
 
       - name: Upload local installer
         uses: actions/upload-artifact@v7

@@ -15,6 +15,11 @@ ad-hoc 签名及 hardened runtime，双方通过精确 CodeDirectory 哈希校�
 解压后运行 `sudo /bin/bash /absolute/path/install.sh`。安装器备份原版 App，
 把风扇交回系统，替换 App、安装独立 root 辅助程序，并停用原版辅助程序。
 重复安装本机版保留原版备份；替换期间发生错误会尝试恢复先前安装。
+卸载时等待旧 launchd 服务和进程均退出，再替换、注册新服务；回滚采用同样的等待，
+只有确认辅助程序实际运行后才报告其恢复成功。
+
+`bash local-support/test-launchd-service.sh` 使用模拟 launchctl 重放卸载延迟、回滚及
+启动失败，不需要 root 权限，也不会修改当前机器的服务。
 
 安装后验证：
 

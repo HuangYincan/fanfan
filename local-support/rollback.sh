@@ -4,6 +4,7 @@ if [ "$(id -u)" -ne 0 ]; then
     exec sudo /bin/bash "$0"
 fi
 SUPPORT_DIR="/Library/Application Support/FanFanLocal"
+source "$SUPPORT_DIR/launchd-service.sh"
 BACKUP="$(cat "$SUPPORT_DIR/last-backup")"
 case "$BACKUP" in "$SUPPORT_DIR"/backups/official-*.zip) ;; *) echo 'Invalid backup path' >&2; exit 1;; esac
 test -f "$BACKUP"
@@ -21,7 +22,7 @@ if /usr/bin/pgrep -x fanfan >/dev/null; then
     echo 'App did not exit; rollback stopped before replacement' >&2; exit 1
 fi
 /Library/PrivilegedHelperTools/fanfan-local-smcd --restore-system
-/bin/launchctl bootout system/com.huangyincan.fanfan.local.helper 2>/dev/null || true
+fanfan_stop_service system/com.huangyincan.fanfan.local.helper
 /bin/launchctl disable system/com.huangyincan.fanfan.local.helper
 /bin/rm -rf /Applications/fanfan.app
 /usr/bin/ditto "$RESTORE_STAGE/fanfan.app" /Applications/fanfan.app
