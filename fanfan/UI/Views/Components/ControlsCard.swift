@@ -397,8 +397,8 @@ struct LabeledSlider: View {
     let format: (Double) -> String
     var accent: SliderAccent = .neutral
     /// Draw a tick per step. Only for a handful of meaningful notches — on / 中文：每个步进画一个刻度。仅用于少量有意义的档位——
-    /// fine-grained ranges (rpm in 50s, °C in 1s) the macOS 26 slider would / 中文：细粒度范围（按 50 rpm、1 °C 步进）下 macOS 26 滑杆
-    /// draw a dense dotted rail, so those snap silently instead. / 中文：会画出密密的点阵，因此改为无刻度静默吸附。
+    /// fine-grained ranges (rpm in 50s, °C in 1s) the ticks would merge into / 中文：细粒度范围（按 50 rpm、1 °C 步进）下刻度会连成
+    /// a dense dotted rail, so those snap silently instead. / 中文：密密的点阵，因此改为无刻度静默吸附。
     var showsTicks: Bool = false
 
     @Environment(\.colorScheme) private var scheme
@@ -434,21 +434,49 @@ struct LabeledSlider: View {
 }
 
 /// System slider that lands on `step` multiples, with or without ticks. / 中文：落在 `step` 整数倍上的系统滑杆，可选是否显示刻度。
+/// Ticks are drawn here rather than via `Slider(step:)`: the macOS 26 ticked / 中文：刻度在这里自绘而不用 `Slider(step:)`：macOS 26 带刻度的
+/// slider sometimes renders its unfilled track near-black on the first / 中文：滑杆在启动后首次打开 popover 时偶发把未填充轨道画成近黑色，
+/// popover open after launch, unlike the plain sliders beside it. / 中文：与旁边的普通滑杆不一致。
 struct SnappingSlider: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
     let step: Double
     var showsTicks: Bool = false
 
+    /// Half the macOS 26 knob width — the knob's center, and so each tick, / 中文：macOS 26 滑块宽度的一半——滑块中心（也就是各刻度）
+    /// stays this far inside both track ends. / 中文：距轨道两端都保持这个距离。
+    private static let knobInset: CGFloat = 10.5
+
     var body: some View {
+        let slider = Slider(value: Binding(
+            get: { value },
+            set: { value = Self.snap($0, to: step, in: range) }
+        ), in: range)
         if showsTicks {
-            Slider(value: $value, in: range, step: step)
+            slider
+                .padding(.bottom, 1.5)
+                .background(alignment: .bottom) { ticks.offset(y: -1) }
         } else {
-            Slider(value: Binding(
-                get: { value },
-                set: { value = Self.snap($0, to: step, in: range) }
-            ), in: range)
+            slider
         }
+    }
+
+    private var ticks: some View {
+        let count = step > 0 ? Int(((range.upperBound - range.lowerBound) / step).rounded()) + 1 : 0
+        // The knob sits on its own tick; hide it as the system slider does. / 中文：滑块压住的那颗刻度隐藏，与系统滑杆一致。
+        let current = step > 0 ? Int(((value - range.lowerBound) / step).rounded()) : -1
+        return HStack(spacing: 0) {
+            ForEach(0..<count, id: \.self) { i in
+                if i > 0 { Spacer(minLength: 0) }
+                Circle()
+                    .fill(Theme.text3)
+                    .frame(width: 2, height: 2)
+                    .opacity(i == current ? 0 : 1)
+            }
+        }
+        .padding(.horizontal, Self.knobInset - 1)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     /// Rounds to the nearest step counted from the range's lower bound, the / 中文：从范围下界起按步进取最近值，

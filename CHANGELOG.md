@@ -2,6 +2,11 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · [SemVer](https://semver.org/spec/v2.0.0.html)
 
+## [2.0.1] - 2026-10-22
+
+### Fixed
+- The Response slider's track no longer occasionally turns near-black, hiding its notches, the first time the popover opens after launch.
+
 ## [2.0.0] - 2026-10-21
 
 > **⚠️ Breaking upgrade.** Every bundle identifier changes from `com.hoobnn.*` to `com.ikuyu.*`. macOS treats FanFan 2.0 as a new app, so the fan-control helper and notification permission must be approved again. Scripts, MDM profiles or `launchctl` commands that use the old identifiers need updating.
