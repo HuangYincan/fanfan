@@ -2,6 +2,18 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · [SemVer](https://semver.org/spec/v2.0.0.html)
 
+## [2.0.0] - 2026-10-21
+
+> **⚠️ Breaking upgrade.** Every bundle identifier changes from `com.hoobnn.*` to `com.ikuyu.*`. macOS treats FanFan 2.0 as a new app, so the fan-control helper and notification permission must be approved again. Scripts, MDM profiles or `launchctl` commands that use the old identifiers need updating.
+
+### Changed
+- **BREAKING:** The app is now `com.ikuyu.fanfan` (debug build `com.ikuyu.fanfan.debug`), and the helper's launchd label and XPC service are now `com.ikuyu.fanfan.helper`. Check the helper with `launchctl print system/com.ikuyu.fanfan.helper`.
+
+### Upgrading from 1.x
+- After updating, open the popover, click Install Helper and allow FanFan once more in System Settings › General › Login Items & Extensions. Fan control stays off until you do this.
+- The 1.x helper (`com.hoobnn.fanfan.helper`) removes itself after the update. Your settings and Launch at Login carry over automatically.
+- macOS asks once more for permission to show notifications.
+
 ## [1.8.1] - 2026-10-10
 
 ### Changed

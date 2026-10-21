@@ -2,7 +2,7 @@
  * fanfan privileged SMC daemon.
  *
  * Registered by the app through SMAppService and reached over the XPC Mach
- * service com.hoobnn.fanfan.helper. Only clients signed by team 8FUPL8QHFH as
+ * service com.ikuyu.fanfan.helper. Only clients signed by team 8FUPL8QHFH as
  * the fanfan app may connect. Each message carries one text command under
  * "line" and gets one text reply under "reply":
  *   SETV2 <fan> <rpm>
@@ -45,15 +45,17 @@
 #include <IOKit/IOKitLib.h>
 #include "smc.h"
 
-#define SERVICE_NAME "com.hoobnn.fanfan.helper"
+#define SERVICE_NAME "com.ikuyu.fanfan.helper"
 /* Only the fanfan app (release or debug build) signed by our team may talk to
  * the daemon. */
 #define CLIENT_REQUIREMENT \
     "anchor apple generic and certificate leaf[subject.OU] = \"8FUPL8QHFH\" and " \
-    "(identifier \"com.hoobnn.fanfan\" or identifier \"com.hoobnn.fanfan.debug\")"
+    "(identifier \"com.ikuyu.fanfan\" or identifier \"com.ikuyu.fanfan.debug\")"
 /* Pre-1.4 installs: a hand-installed system LaunchDaemon on a Unix socket. */
 #define LEGACY_LABEL "com.hoobnn.fanfan.smcd"
 #define LEGACY_PLIST "/Library/LaunchDaemons/com.hoobnn.fanfan.smcd.plist"
+/* 1.4 – 1.8: the same SMAppService daemon under the pre-rename label. */
+#define OLD_HELPER_LABEL "com.hoobnn.fanfan.helper"
 #define MAX_COMMAND_LENGTH 127
 #define MAX_FANS 8
 #define MIN_RPM 500
@@ -909,6 +911,24 @@ static void remove_legacy_daemon(void)
     unlink("/var/run/fanfan-smcd.sock");
 }
 
+/* Updating from a pre-rename build leaves the old label's job running this
+ * binary, but launchd grants it only the old Mach service. Boot that job out
+ * and wait for its SIGTERM; the app registers the new label. launchctl waits
+ * for the job to exit, so it must not be waited on here. */
+static int retire_old_helper_job(void)
+{
+    fprintf(stderr, "fanfan-smcd: retiring " OLD_HELPER_LABEL "\n");
+    char *argv[] = {"/bin/launchctl", "bootout", "system/" OLD_HELPER_LABEL, NULL};
+    pid_t pid = 0;
+    if (posix_spawn(&pid, argv[0], NULL, NULL, argv, NULL) != 0) {
+        return 1;
+    }
+    while (!g_should_exit) {
+        pause();
+    }
+    return 0;
+}
+
 /* Updaters delete the old bundle before copying the new one in. A relaunch
  * inside that gap fails with ENOENT and launchd then stops retrying, which
  * leaves the app asking to install the helper again. Wait until an
@@ -979,6 +999,11 @@ int main(void)
     signal(SIGTERM, request_shutdown);
     signal(SIGPIPE, SIG_IGN);
 
+    const char *label = getenv("XPC_SERVICE_NAME");
+    if (label != NULL && strcmp(label, OLD_HELPER_LABEL) == 0) {
+        return retire_old_helper_job();
+    }
+
     remove_legacy_daemon();
 
     kern_return_t result = smc_open();
@@ -992,7 +1017,7 @@ int main(void)
 
     /* One serial queue owns all SMC state: client messages, the lease timer
      * and shutdown never run concurrently. */
-    g_queue = dispatch_queue_create("com.hoobnn.fanfan.helper", DISPATCH_QUEUE_SERIAL);
+    g_queue = dispatch_queue_create("com.ikuyu.fanfan.helper", DISPATCH_QUEUE_SERIAL);
 
     xpc_connection_t listener = xpc_connection_create_mach_service(
         SERVICE_NAME, g_queue, XPC_CONNECTION_MACH_SERVICE_LISTENER);

@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F0A1C0022FB7000000000002 /* com.hoobnn.fanfan.helper.plist in Copy LaunchDaemon */ = {isa = PBXBuildFile; fileRef = F0A1C0012FB7000000000001 /* com.hoobnn.fanfan.helper.plist */; };
+		F0A1C0022FB7000000000002 /* com.ikuyu.fanfan.helper.plist in Copy LaunchDaemon */ = {isa = PBXBuildFile; fileRef = F0A1C0012FB7000000000001 /* com.ikuyu.fanfan.helper.plist */; };
 		5A0B1E032FB8000000000003 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 5A0B1E022FB8000000000002 /* Sparkle */; };
 /* End PBXBuildFile section */
 
@@ -28,7 +28,7 @@
 			dstPath = Contents/Library/LaunchDaemons;
 			dstSubfolderSpec = 1;
 			files = (
-				F0A1C0022FB7000000000002 /* com.hoobnn.fanfan.helper.plist in Copy LaunchDaemon */,
+				F0A1C0022FB7000000000002 /* com.ikuyu.fanfan.helper.plist in Copy LaunchDaemon */,
 			);
 			name = "Copy LaunchDaemon";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -38,7 +38,7 @@
 /* Begin PBXFileReference section */
 		2596D7582FB6BD55006A53A9 /* fanfanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = fanfanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D127C6E22F14343F00456D59 /* fanfan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = fanfan.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		F0A1C0012FB7000000000001 /* com.hoobnn.fanfan.helper.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = com.hoobnn.fanfan.helper.plist; path = "tools/fanfan-smcd/com.hoobnn.fanfan.helper.plist"; sourceTree = SOURCE_ROOT; };
+		F0A1C0012FB7000000000001 /* com.ikuyu.fanfan.helper.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = com.ikuyu.fanfan.helper.plist; path = "tools/fanfan-smcd/com.ikuyu.fanfan.helper.plist"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -91,7 +91,7 @@
 			children = (
 				D127C6E42F14343F00456D59 /* fanfan */,
 				2596D7592FB6BD55006A53A9 /* fanfanTests */,
-				F0A1C0012FB7000000000001 /* com.hoobnn.fanfan.helper.plist */,
+				F0A1C0012FB7000000000001 /* com.ikuyu.fanfan.helper.plist */,
 				D127C6E32F14343F00456D59 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -257,7 +257,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.hoobnn.fanfan.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ikuyu.fanfan.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -278,7 +278,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.hoobnn.fanfan.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ikuyu.fanfan.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -423,7 +423,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 32;
+				CURRENT_PROJECT_VERSION = 33;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 8FUPL8QHFH;
 				ENABLE_APP_SANDBOX = NO;
@@ -439,14 +439,14 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.8.1;
+				MARKETING_VERSION = 2.0.0;
 				OTHER_LDFLAGS = (
 					"-framework",
 					ServiceManagement,
 					"-framework",
 					IOKit,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.hoobnn.fanfan.debug;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ikuyu.fanfan.debug;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -466,7 +466,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 32;
+				CURRENT_PROJECT_VERSION = 33;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 8FUPL8QHFH;
 				ENABLE_APP_SANDBOX = NO;
@@ -482,14 +482,14 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.8.1;
+				MARKETING_VERSION = 2.0.0;
 				OTHER_LDFLAGS = (
 					"-framework",
 					ServiceManagement,
 					"-framework",
 					IOKit,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.hoobnn.fanfan;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ikuyu.fanfan;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

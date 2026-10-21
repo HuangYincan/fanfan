@@ -12,6 +12,9 @@ import Combine
 import UserNotifications
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    /// Stored properties initialise in order; this one must run before any
+    /// component below reads settings. / 中文：存储属性按声明顺序初始化，必须先于下面任何组件读取设置。
+    private let migratedPreRenameDefaults = UserDefaultsManager.migratePreRenameDefaults()
     let statusBarManager = StatusBarManager()
     lazy var viewModel = FanControlViewModel()
     let updater = AppUpdater()
@@ -65,6 +68,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] notification in
             let closing = notification.object as? NSWindow
             self?.scheduleMenuBarPolicyUpdate(ignoring: closing)
+        }
+
+        // The login item was registered under the old bundle ID.
+        // 中文：登录项是以旧 bundle ID 注册的，按迁入的设置重新注册。
+        if migratedPreRenameDefaults, UserDefaultsManager.shared.launchAtLogin,
+           !LaunchAtLoginManager.shared.isEnabled {
+            LaunchAtLoginManager.shared.isEnabled = true
         }
 
         // Initialize components immediately / 中文：立即初始化组件

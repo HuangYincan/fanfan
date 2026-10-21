@@ -11,7 +11,7 @@ import XPC
 
 enum SMCDaemonClient {
     /// Mach service (and launchd label) of the SMAppService daemon. / 中文：SMAppService 守护进程的 Mach 服务名（亦即 launchd 标签）。
-    nonisolated static let serviceName = "com.hoobnn.fanfan.helper"
+    nonisolated static let serviceName = "com.ikuyu.fanfan.helper"
     nonisolated static let protocolVersion = 2
 
     /// PING / RENEW must outlast the daemon's Ftst unlock. The daemon handles
@@ -82,7 +82,7 @@ enum SMCDaemonClient {
 
     // MARK: - XPC transport / 中文：XPC 传输
 
-    nonisolated private static let queue = DispatchQueue(label: "com.hoobnn.fanfan.helper-client")
+    nonisolated private static let queue = DispatchQueue(label: "com.ikuyu.fanfan.helper-client")
     nonisolated private static let lock = NSLock()
     /// One long-lived connection: the daemon ties the control lease to it, so
     /// fans return to firmware the moment this process goes away.

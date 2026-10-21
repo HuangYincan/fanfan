@@ -497,7 +497,7 @@ class FanController: ObservableObject {
     // Blocking socket I/O to the daemon runs on this serial queue, off the main / 中文：与守护进程的阻塞 socket I/O 在此串行队列后台执行，
     // thread, because the first manual write triggers an ~8 s Ftst unlock on / 中文：因为 Apple Silicon 上首次手动写入会触发约 8 秒的
     // Apple Silicon (see fanfan-smcd.c). / 中文：Ftst 解锁（见 fanfan-smcd.c）。
-    private let smcQueue = DispatchQueue(label: "com.hoobnn.fanfan.smc-write")
+    private let smcQueue = DispatchQueue(label: "com.ikuyu.fanfan.smc-write")
     private let smcQueueKey = DispatchSpecificKey<Void>()
     // Coalesce SET writes so the 2 s auto timer can't pile up a backlog while a / 中文：合并 SET 写入，使 2 秒自动定时器在解锁期间
     // write (possibly the unlock) is in flight: keep only the most recent target / 中文：不会堆积——只保留最新目标，
