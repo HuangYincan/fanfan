@@ -481,8 +481,10 @@ static kern_return_t ensure_manual(int fan)
             return kIOReturnSuccess;
         }
         /* The write may have succeeded even though verification failed. Never
-         * continue as if firmware still owned the fan. */
-        schedule_restore_retry(fan);
+         * continue as if firmware still owned the fan. The pending flag makes
+         * set_fan_auto cancel the queued write, and it schedules its own retry
+         * on failure; doing so here would flip the global lease and restore
+         * every other fan the client still holds manual. */
         (void)set_fan_auto(fan);
         return verified;
     }
@@ -614,14 +616,17 @@ static kern_return_t set_fan_auto(int fan)
 
     /* Also cancel a queued manual write which has not appeared in readback yet.
      * Otherwise a failed acquisition can read the old mode 0 here, clear its
-     * pending flag, and leave the delayed mode 1 unowned when it finally lands. */
+     * pending flag, and leave the delayed mode 1 unowned when it finally lands.
+     * Stale readback shows 0 (Ftst unlock also waits for 3->0 first). Mode 3
+     * means firmware already took the fan back, e.g. after sleep reset Ftst,
+     * and a mode-0 write may be rejected there, so leave it untouched. */
     UInt8 cur = 0;
     uint8_t res = 0;
     if (smc_read_u8(mkey, &cur) != 0) {
         schedule_restore_retry(fan);
         return kIOReturnError;
     }
-    if (cur == 1 || g_manual[fan] || g_restore_pending[fan]) {
+    if (cur == 1 || (cur == 0 && (g_manual[fan] || g_restore_pending[fan]))) {
         kern_return_t result = smc_write_u8(mkey, 0, &res); /* accepted while Ftst=1 */
         if (result != kIOReturnSuccess) {
             schedule_restore_retry(fan);

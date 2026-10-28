@@ -30,6 +30,7 @@ static uint64_t fake_now;
 static unsigned delay_ms;
 static int reject_manual;
 static int require_ftst;
+static int reject_auto_when_locked;
 static int ftst;
 static int fail_reads_after_write;
 static int read_failures;
@@ -101,7 +102,8 @@ static kern_return_t fake_io_call(mach_port_t connection, uint32_t selector,
         }
     } else if (input->data8 == SMC_CMD_WRITE_BYTES) {
         if (is_mode) {
-            if (input->bytes[0] == 1 && (reject_manual || (require_ftst && !ftst))) {
+            if ((input->bytes[0] == 1 && (reject_manual || (require_ftst && !ftst))) ||
+                (input->bytes[0] == 0 && reject_auto_when_locked && fans[fan].mode == 3 && !ftst)) {
                 output->result = SMC_RESULT_BAD_COMMAND;
                 return kIOReturnSuccess;
             }
@@ -140,7 +142,7 @@ static void reset(void)
     for (int fan = 0; fan < MAX_FANS; fan++) {
         g_min_rpm[fan] = 1200; g_max_rpm[fan] = 6000; g_limits_known[fan] = 1;
     }
-    reject_manual = require_ftst = ftst = 0;
+    reject_manual = require_ftst = ftst = reject_auto_when_locked = 0;
     fail_reads_after_write = read_failures = 0;
     mode_writes = auto_writes = target_writes = 0;
     shutdown_at = 0;
@@ -256,6 +258,30 @@ static int synchronous_firmware_does_not_wait(void)
     return 0;
 }
 
+static int timeout_keeps_other_fans_manual(void)
+{
+    reset(); delay_ms = 0;
+    CHECK(command_ok("SETV2 1 5000"), "first fan must acquire manual control");
+    delay_ms = 1500;
+    CHECK(!command_ok("SETV2 0 5779"), "an unobserved mode transition must not report SET success");
+    enforce_control_lease();
+    advance(3000);
+    CHECK(fans[0].mode == 0, "the failed fan must be handed back");
+    CHECK(fans[1].mode == 1 && g_manual[1], "one fan's failure must not restore its peers");
+    CHECK(g_lease_state == LEASE_ACTIVE, "the client's lease must survive a single-fan failure");
+    return 0;
+}
+
+static int firmware_reclaimed_fan_is_left_alone(void)
+{
+    reset(); require_ftst = 1; g_ftst_avail = 1; reject_auto_when_locked = 1;
+    fans[0].mode = 3; g_manual[0] = 1; g_ftst_engaged = 1; g_lease_state = LEASE_ACTIVE;
+    CHECK(command_ok("AUTOV2 0"), "mode 3 after wake is already firmware control");
+    CHECK(mode_writes == 0, "do not write mode 0 over firmware system mode");
+    CHECK(g_lease_state == LEASE_NONE && !g_manual[0], "the handoff must complete");
+    return 0;
+}
+
 int main(void)
 {
     int (*cases[])(void) = { delayed_manual_then_target, delayed_system_restore,
@@ -263,13 +289,14 @@ int main(void)
         rejected_write_is_not_accepted, unreadable_restore_stays_pending,
         shutdown_still_confirms_restore, ftst_unlock_waits_after_acceptance,
         existing_system_mode_is_a_fast_noop, shutdown_cancels_acquisition_and_restores,
-        synchronous_firmware_does_not_wait };
+        synchronous_firmware_does_not_wait, timeout_keeps_other_fans_manual,
+        firmware_reclaimed_fan_is_left_alone };
     int failures = 0;
     for (unsigned i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
         int result = cases[i](); failures += result;
         if (!result) printf("PASS: SMC transition case %u\n", i + 1);
     }
     if (failures) return 1;
-    puts("11 SMC mode-transition regressions passed");
+    puts("13 SMC mode-transition regressions passed");
     return 0;
 }
