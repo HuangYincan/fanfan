@@ -12,12 +12,15 @@ import Combine
 import QuartzCore
 
 struct StatusBarAnimationSettings {
-    /// The menu-bar icon is 16 pt and turns slowly (≤120°/s). At that size / 中文：菜单栏图标只有 16 pt 且转速 ≤120°/s。在该尺寸下，
-    /// 15 fps is visually indistinguishable from 30 fps for a decorative / 中文：装饰性旋转动画 15 fps 和 30 fps 几乎不可分辨；
-    /// spinner — but it halves the rate of `-[NSStatusBarButton setImage:]`, / 中文：但它能把 `-[NSStatusBarButton setImage:]` 的频率减半，
-    /// each of which forces a full button-cell + autolayout + XPC redraw. / 中文：而每次 setImage 都会触发按钮单元 + 自动布局 + XPC 重绘。
-    static let iconFramesPerSecond: Double = 15
-    static let minimumFramesPerSecond: Double = 12
+    /// The menu-bar icon is 16 pt and turns slowly (≤120°/s), so 10 fps still / 中文：菜单栏图标只有 16 pt 且转速 ≤120°/s，10 fps 仍能
+    /// reads as a smooth decorative spin. Every frame costs a full / 中文：呈现平滑的装饰性旋转。每帧都要付出一次完整的
+    /// `-[NSStatusBarButton setImage:]` (cell + autolayout), a layer redraw / 中文：`-[NSStatusBarButton setImage:]`（按钮单元 + 自动布局）、一次图层重绘，
+    /// and a menu-bar replicant re-snapshot of the whole button, so CPU / 中文：以及菜单栏 replicant 对整个按钮的重新快照，因此 CPU
+    /// scales linearly with this rate (15 → 10 fps cut it by about a third). / 中文：与该帧率线性相关（15 → 10 fps 约降三分之一）。
+    /// Drawing the icon in a subview avoids the cell work but the replicant / 中文：把图标画在子视图里虽能省掉按钮单元开销，但 replicant
+    /// then stops re-snapshotting, freezing the icon on the menu bar. / 中文：随之不再重新快照，菜单栏上的图标会定住。
+    static let iconFramesPerSecond: Double = 10
+    static let minimumFramesPerSecond: Double = 8
     static let iconCacheCount: Int = 120
 
     /// The icon animates at a fixed calm rate regardless of display refresh. / 中文：The 图标 animates at a fixed calm rate regardless of display refresh.
