@@ -164,6 +164,7 @@ class UserDefaultsManager {
         defaults.removeObject(forKey: "useCelsius")
         defaults.removeObject(forKey: "monitoringInterval")
         defaults.removeObject(forKey: "statusBarDisplayMode")
+        defaults.removeObject(forKey: StatusBarAnimationSettings.userDefaultsKey)
         defaults.removeObject(forKey: "enableNotifications")
         defaults.removeObject(forKey: "highTempAlert")
         defaults.removeObject(forKey: "autoSwitchMode")

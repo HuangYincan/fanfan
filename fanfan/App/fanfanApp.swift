@@ -20,6 +20,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let updater = AppUpdater()
     private var iconUpdateTimer: Timer?
     private var displayModeObserver: NSObjectProtocol?
+    private var iconFPSObserver: NSObjectProtocol?
     private var windowCloseObserver: NSObjectProtocol?
     private var cancellables = Set<AnyCancellable>()
     /// Keeps App Nap from freezing our background timers. / 中文：阻止 App Nap 冻结后台定时器的活动凭证。
@@ -100,6 +101,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 statusBarManager?.setDisplayMode(mode)
             }
         }
+
+        // Listen for icon animation frame-rate changes / 中文：监听图标动画帧率变化
+        iconFPSObserver = NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("StatusBarIconFPSChanged"),
+            object: nil,
+            queue: .main
+        ) { [weak statusBarManager] notification in
+            if let fps = notification.object as? Int {
+                statusBarManager?.setIconFramesPerSecond(fps)
+            }
+        }
         
         // Create popover content after a brief delay to ensure status bar is ready / 中文：短暂延迟后创建弹出内容，确保状态栏已就绪
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
@@ -178,6 +190,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         if let observer = displayModeObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let observer = iconFPSObserver {
             NotificationCenter.default.removeObserver(observer)
         }
         if let observer = windowCloseObserver {

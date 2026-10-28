@@ -38,6 +38,9 @@
 "settings.launch_at_login_desc" = "로그인할 때 앱을 자동으로 시작합니다";
 "settings.menu_bar_display" = "메뉴 막대 표시";
 "settings.menu_bar_display_desc" = "메뉴 막대에 표시할 정보";
+"settings.icon_animation" = "아이콘 애니메이션";
+"settings.icon_animation_desc" = "팬 아이콘 회전은 CPU를 조금 사용하며, 프레임률이 높을수록 더 많이 사용합니다";
+"settings.icon_animation.off" = "정지";
 "settings.monitoring_interval" = "모니터링 간격";
 "settings.monitoring_interval_desc" = "온도를 확인하는 주기(초)";
 "settings.high_temp_alert" = "고온 알림";
