@@ -282,6 +282,26 @@ static int firmware_reclaimed_fan_is_left_alone(void)
     return 0;
 }
 
+static int stale_locked_readback_is_still_cancelled(void)
+{
+    reset(); require_ftst = 1; g_ftst_avail = 1; fans[0].mode = 3; delay_ms = 20000;
+    CHECK(!command_ok("SETV2 0 5779"), "an accepted write that never reads back must fail");
+    CHECK(target_writes == 0, "never write a target without confirmed manual mode");
+    CHECK(auto_writes > 0, "a stale mode 3 must still cancel the queued manual write");
+    advance(30000);
+    CHECK(fans[0].mode == 0, "the delayed manual write must not strand the fan");
+    return 0;
+}
+
+static int rejected_cancel_over_locked_mode_completes(void)
+{
+    reset(); require_ftst = 1; g_ftst_avail = 1; reject_auto_when_locked = 1;
+    fans[0].mode = 3; g_manual[0] = 1; g_restore_pending[0] = 1; g_lease_state = LEASE_RESTORE_PENDING;
+    CHECK(command_ok("AUTOV2 0"), "firmware already owns a fan that rejects mode 0 over mode 3");
+    CHECK(g_lease_state == LEASE_NONE && !g_restore_pending[0], "restore must not retry forever");
+    return 0;
+}
+
 int main(void)
 {
     int (*cases[])(void) = { delayed_manual_then_target, delayed_system_restore,
@@ -290,13 +310,14 @@ int main(void)
         shutdown_still_confirms_restore, ftst_unlock_waits_after_acceptance,
         existing_system_mode_is_a_fast_noop, shutdown_cancels_acquisition_and_restores,
         synchronous_firmware_does_not_wait, timeout_keeps_other_fans_manual,
-        firmware_reclaimed_fan_is_left_alone };
+        firmware_reclaimed_fan_is_left_alone, stale_locked_readback_is_still_cancelled,
+        rejected_cancel_over_locked_mode_completes };
     int failures = 0;
     for (unsigned i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
         int result = cases[i](); failures += result;
         if (!result) printf("PASS: SMC transition case %u\n", i + 1);
     }
     if (failures) return 1;
-    puts("13 SMC mode-transition regressions passed");
+    puts("15 SMC mode-transition regressions passed");
     return 0;
 }

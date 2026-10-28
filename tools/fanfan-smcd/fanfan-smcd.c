@@ -617,18 +617,22 @@ static kern_return_t set_fan_auto(int fan)
     /* Also cancel a queued manual write which has not appeared in readback yet.
      * Otherwise a failed acquisition can read the old mode 0 here, clear its
      * pending flag, and leave the delayed mode 1 unowned when it finally lands.
-     * Stale readback shows 0 (Ftst unlock also waits for 3->0 first). Mode 3
-     * means firmware already took the fan back, e.g. after sleep reset Ftst,
-     * and a mode-0 write may be rejected there, so leave it untouched. */
+     * A pending acquisition may still read the old 0 or 3. A confirmed fan
+     * reading 3 (pending cleared) was reclaimed by firmware, e.g. after sleep
+     * reset Ftst; leave it untouched. Mode 0 is accepted while Ftst=1, so a
+     * rejection over mode 3 means Ftst is already off and no manual write can
+     * have been accepted: firmware owns the fan. */
     UInt8 cur = 0;
     uint8_t res = 0;
     if (smc_read_u8(mkey, &cur) != 0) {
         schedule_restore_retry(fan);
         return kIOReturnError;
     }
-    if (cur == 1 || (cur == 0 && (g_manual[fan] || g_restore_pending[fan]))) {
+    if (cur == 1 || g_restore_pending[fan] || (cur == 0 && g_manual[fan])) {
         kern_return_t result = smc_write_u8(mkey, 0, &res); /* accepted while Ftst=1 */
-        if (result != kIOReturnSuccess) {
+        if (result != kIOReturnSuccess && cur != 0 && cur != 1) {
+            result = kIOReturnSuccess;
+        } else if (result != kIOReturnSuccess) {
             schedule_restore_retry(fan);
             return result;
         }
