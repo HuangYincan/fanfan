@@ -2,6 +2,14 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · [SemVer](https://semver.org/spec/v2.0.0.html)
 
+## [2.1.0] - 2026-10-28
+
+### Added
+- Settings › Menu Bar › Icon Animation: keep the menu bar fan icon still, or spin it at 5, 10 or 15 fps.
+
+### Changed
+- The menu bar fan icon is now still by default. Spinning it costs CPU on every frame (about 7 % of one core at 10 fps versus under 0.5 % when still); turn it back on under Icon Animation.
+
 ## [2.0.1] - 2026-10-22
 
 ### Fixed
