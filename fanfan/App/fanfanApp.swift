@@ -12,11 +12,15 @@ import Combine
 import UserNotifications
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    /// Stored properties initialise in order; this one must run before any
+    /// component below reads settings. / 中文：存储属性按声明顺序初始化，必须先于下面任何组件读取设置。
+    private let migratedPreRenameDefaults = UserDefaultsManager.migratePreRenameDefaults()
     let statusBarManager = StatusBarManager()
     lazy var viewModel = FanControlViewModel()
     let updater = AppUpdater()
     private var iconUpdateTimer: Timer?
     private var displayModeObserver: NSObjectProtocol?
+    private var iconFPSObserver: NSObjectProtocol?
     private var windowCloseObserver: NSObjectProtocol?
     private var cancellables = Set<AnyCancellable>()
     /// Keeps App Nap from freezing our background timers. / 中文：阻止 App Nap 冻结后台定时器的活动凭证。
@@ -67,6 +71,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self?.scheduleMenuBarPolicyUpdate(ignoring: closing)
         }
 
+        // The login item was registered under the old bundle ID.
+        // 中文：登录项是以旧 bundle ID 注册的，按迁入的设置重新注册。
+        if migratedPreRenameDefaults, UserDefaultsManager.shared.launchAtLogin,
+           !LaunchAtLoginManager.shared.isEnabled {
+            LaunchAtLoginManager.shared.isEnabled = true
+        }
+
         // Initialize components immediately / 中文：立即初始化组件
         setupApplication()
     }
@@ -88,6 +99,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak statusBarManager] notification in
             if let mode = notification.object as? String {
                 statusBarManager?.setDisplayMode(mode)
+            }
+        }
+
+        // Listen for icon animation frame-rate changes / 中文：监听图标动画帧率变化
+        iconFPSObserver = NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("StatusBarIconFPSChanged"),
+            object: nil,
+            queue: .main
+        ) { [weak statusBarManager] notification in
+            if let fps = notification.object as? Int {
+                statusBarManager?.setIconFramesPerSecond(fps)
             }
         }
         
@@ -168,6 +190,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         if let observer = displayModeObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let observer = iconFPSObserver {
             NotificationCenter.default.removeObserver(observer)
         }
         if let observer = windowCloseObserver {

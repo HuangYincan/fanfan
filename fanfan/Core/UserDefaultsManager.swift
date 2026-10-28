@@ -14,6 +14,27 @@ class UserDefaultsManager {
     private let defaults = UserDefaults.standard
     
     private init() {}
+
+    /// Builds before the rename used the `com.hoobnn.` bundle ID prefix. Copy that
+    /// domain's settings once, before anything reads or writes the new one.
+    /// Returns whether old settings were found.
+    /// 中文：改名前的 bundle ID 前缀是 `com.hoobnn.`，在读写新域之前一次性迁入旧域的设置；返回是否找到旧设置。
+    @discardableResult
+    static func migratePreRenameDefaults(
+        bundleIdentifier: String? = Bundle.main.bundleIdentifier,
+        defaults: UserDefaults = .standard
+    ) -> Bool {
+        let migratedKey = "migratedPreRenameDefaults"
+        guard let bundleIdentifier, bundleIdentifier.hasPrefix("com.ikuyu."),
+              !defaults.bool(forKey: migratedKey) else { return false }
+        let oldIdentifier = "com.hoobnn." + bundleIdentifier.dropFirst("com.ikuyu.".count)
+        defaults.set(true, forKey: migratedKey)
+        guard let old = defaults.persistentDomain(forName: oldIdentifier) else { return false }
+        for (key, value) in old where defaults.object(forKey: key) == nil {
+            defaults.set(value, forKey: key)
+        }
+        return true
+    }
     
     // MARK: - Fan Control Settings / 中文：风扇控制设置
     
@@ -143,6 +164,7 @@ class UserDefaultsManager {
         defaults.removeObject(forKey: "useCelsius")
         defaults.removeObject(forKey: "monitoringInterval")
         defaults.removeObject(forKey: "statusBarDisplayMode")
+        defaults.removeObject(forKey: StatusBarAnimationSettings.userDefaultsKey)
         defaults.removeObject(forKey: "enableNotifications")
         defaults.removeObject(forKey: "highTempAlert")
         defaults.removeObject(forKey: "autoSwitchMode")

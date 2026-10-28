@@ -38,6 +38,9 @@
 "settings.launch_at_login_desc" = "ログイン時にアプリを自動的に起動します";
 "settings.menu_bar_display" = "メニューバーの表示";
 "settings.menu_bar_display_desc" = "ステータスバーに表示する情報";
+"settings.icon_animation" = "アイコンのアニメーション";
+"settings.icon_animation_desc" = "ファンアイコンの回転は CPU を少し使います。フレームレートが高いほど負荷が増えます";
+"settings.icon_animation.off" = "静止";
 "settings.monitoring_interval" = "監視間隔";
 "settings.monitoring_interval_desc" = "温度を確認する頻度（秒）";
 "settings.high_temp_alert" = "高温警告";

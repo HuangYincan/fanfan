@@ -12,18 +12,23 @@ import Combine
 import QuartzCore
 
 struct StatusBarAnimationSettings {
-    /// The menu-bar icon is 16 pt and turns slowly (≤120°/s). At that size / 中文：菜单栏图标只有 16 pt 且转速 ≤120°/s。在该尺寸下，
-    /// 15 fps is visually indistinguishable from 30 fps for a decorative / 中文：装饰性旋转动画 15 fps 和 30 fps 几乎不可分辨；
-    /// spinner — but it halves the rate of `-[NSStatusBarButton setImage:]`, / 中文：但它能把 `-[NSStatusBarButton setImage:]` 的频率减半，
-    /// each of which forces a full button-cell + autolayout + XPC redraw. / 中文：而每次 setImage 都会触发按钮单元 + 自动布局 + XPC 重绘。
-    static let iconFramesPerSecond: Double = 15
-    static let minimumFramesPerSecond: Double = 12
-    static let iconCacheCount: Int = 120
+    /// User-selectable icon frame rates; `0` keeps the icon still and is / 中文：可选的图标帧率；`0` 表示图标静止，也是默认值。
+    /// the default. Every frame costs a full `-[NSStatusBarButton setImage:]` / 中文：每帧都要付出一次完整的 `-[NSStatusBarButton setImage:]`
+    /// (cell + autolayout), a layer redraw and a menu-bar replicant / 中文：（按钮单元 + 自动布局）、一次图层重绘，以及菜单栏 replicant
+    /// re-snapshot of the whole button, so CPU scales linearly with the rate. / 中文：对整个按钮的重新快照，因此 CPU 与帧率线性相关。
+    /// Drawing the icon in a subview avoids the cell work but the replicant / 中文：把图标画在子视图里虽能省掉按钮单元开销，但 replicant
+    /// then stops re-snapshotting, freezing the icon on the menu bar. / 中文：随之不再重新快照，菜单栏上的图标会定住。
+    static let framesPerSecondOptions: [Int] = [0, 5, 10, 15]
+    static let defaultFramesPerSecond: Int = 0
+    static let userDefaultsKey = "statusBarIconFPS"
 
-    /// The icon animates at a fixed calm rate regardless of display refresh. / 中文：The 图标 animates at a fixed calm rate regardless of display refresh.
-    static func effectiveFramesPerSecond(for _: Double?) -> Double {
-        iconFramesPerSecond
+    /// Stored value snapped to a supported option; unknown values fall back to still. / 中文：把存储值归一到支持的选项；未知值回退为静止。
+    static func framesPerSecond(stored: Int?) -> Int {
+        guard let stored, framesPerSecondOptions.contains(stored) else { return defaultFramesPerSecond }
+        return stored
     }
+
+    static let iconCacheCount: Int = 120
 
     static func degreesPerSecond(fanSpeed: Int, referenceMaxRPM: Int) -> Double {
         guard fanSpeed > 0 else { return 0 }
@@ -56,9 +61,12 @@ class StatusBarManager: NSObject, ObservableObject {
     private var currentTemperature: Double?
     private var currentPowerWatts: Double?
     private var displayMode: String = "temperature"
+    private var iconFramesPerSecond: Int = StatusBarAnimationSettings.framesPerSecond(
+        stored: UserDefaults.standard.integer(forKey: StatusBarAnimationSettings.userDefaultsKey)
+    )
 
-    // Pre-rendered icon cache. The fixed 30 fps animation does not need a / 中文：Pre-rendered 图标 缓存. The fixed 30 fps animation does not need a
-    // display-refresh-sized cache. / 中文：display-refresh-sized 缓存.
+    // Pre-rendered icon cache. The low fixed frame rate does not need a / 中文：预渲染图标缓存。固定的低帧率动画不需要
+    // display-refresh-sized cache. / 中文：按显示器刷新率大小的缓存。
     private var iconCache: [Int: NSImage] = [:]
     private let iconCacheCount: Int = StatusBarAnimationSettings.iconCacheCount
     /// Slot index currently visible on the menu bar; `-1` means none yet. / 中文：当前菜单栏上可见的槽位索引；`-1` 表示尚未绘制。
@@ -398,11 +406,12 @@ class StatusBarManager: NSObject, ObservableObject {
     }
     
     private func updateAnimationSpeed() {
-        // Reduce Motion: a still fan icon; the title still carries the reading. / 中文：减弱动态效果时图标静止，读数仍由标题显示。
-        guard displayFanSpeedMax > 0,
+        // Still icon when the user picked it, the fans are stopped or Reduce / 中文：用户选择静止、风扇停转或开启「减弱动态效果」时
+        // Motion is on; the title still carries the reading. / 中文：图标静止，读数仍由标题显示。
+        guard iconFramesPerSecond > 0,
+              displayFanSpeedMax > 0,
               !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
-            stopAnimation()
-            statusItem?.button?.image = cachedIcon(for: 0)
+            showStillIcon()
             return
         }
 
@@ -411,6 +420,26 @@ class StatusBarManager: NSObject, ObservableObject {
             referenceMaxRPM: animationReferenceMaxRPM()
         )
         startAnimationIfNeeded()
+    }
+
+    /// Readings land every few seconds; only touch the button when the icon / 中文：读数每隔几秒到来一次；只有图标确实需要回正时
+    /// actually has to return to its rest pose. / 中文：才去改按钮。
+    private func showStillIcon() {
+        guard isAnimationRunning || lastDrawnIconSlot != 0 else { return }
+        stopAnimation()
+        statusItem?.button?.image = cachedIcon(for: 0)
+        lastDrawnIconSlot = 0
+    }
+
+    func setIconFramesPerSecond(_ framesPerSecond: Int) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let fps = StatusBarAnimationSettings.framesPerSecond(stored: framesPerSecond)
+            guard fps != self.iconFramesPerSecond else { return }
+            self.iconFramesPerSecond = fps
+            if self.isAnimationRunning { self.stopAnimation() }
+            self.updateAnimationSpeed()
+        }
     }
 
     private func startAnimationIfNeeded() {
@@ -434,13 +463,11 @@ class StatusBarManager: NSObject, ObservableObject {
         }
 
         let link = screen.displayLink(target: self, selector: #selector(displayLinkDidRefresh(_:)))
-        let framesPerSecond = StatusBarAnimationSettings.effectiveFramesPerSecond(
-            for: Double(screen.maximumFramesPerSecond)
-        )
+        let framesPerSecond = Float(iconFramesPerSecond)
         link.preferredFrameRateRange = CAFrameRateRange(
-            minimum: Float(StatusBarAnimationSettings.minimumFramesPerSecond),
-            maximum: Float(framesPerSecond),
-            preferred: Float(framesPerSecond)
+            minimum: framesPerSecond,
+            maximum: framesPerSecond,
+            preferred: framesPerSecond
         )
         link.add(to: .main, forMode: .common)
         displayLink = link
@@ -448,9 +475,7 @@ class StatusBarManager: NSObject, ObservableObject {
     }
 
     private func startFallbackTimer() {
-        let framesPerSecond = StatusBarAnimationSettings.effectiveFramesPerSecond(
-            for: NSScreen.main.map { Double($0.maximumFramesPerSecond) }
-        )
+        let framesPerSecond = Double(iconFramesPerSecond)
         let timer = Timer.scheduledTimer(withTimeInterval: 1.0 / framesPerSecond, repeats: true) { [weak self] _ in
             self?.advanceAnimationFrame()
         }
@@ -481,9 +506,9 @@ class StatusBarManager: NSObject, ObservableObject {
 
         // Skip the assignment when the quantized icon slot is unchanged. / 中文：当量化后的图标槽位未变时跳过赋值。
         // Each `-[NSStatusBarButton setImage:]` re-evaluates the entire button / 中文：每次 `-[NSStatusBarButton setImage:]` 都会重新计算整个按钮单元
-        // cell (attributed title attributes, autolayout, …) regardless of / 中文：（属性化标题属性、自动布局等），与图像是否真正变化无关，
-        // whether the image actually changed — at 30 fps with 120 slots and / 中文：在 30 fps、120 个槽位、低/中转速下，
-        // low/medium fan speeds most frames hit the same slot. / 中文：大多数帧落在同一个槽位上。
+        // cell (attributed title attributes, autolayout, …) regardless of / 中文：（属性化标题属性、自动布局等），与图像是否真正变化无关；
+        // whether the image actually changed — at low fan speeds consecutive / 中文：低转速下相邻帧
+        // frames often hit the same slot. / 中文：经常落在同一个槽位上。
         let slot = iconCacheSlot(for: currentRotation)
         guard slot != lastDrawnIconSlot else { return }
         lastDrawnIconSlot = slot

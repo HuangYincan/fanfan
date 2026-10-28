@@ -4,18 +4,18 @@
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.hoobnn.fanfan.helper</string>
+  <string>com.ikuyu.fanfan.helper</string>
   <key>BundleProgram</key>
   <string>Contents/Resources/fanfan-smcd</string>
   <key>MachServices</key>
   <dict>
-    <key>com.hoobnn.fanfan.helper</key>
+    <key>com.ikuyu.fanfan.helper</key>
     <true/>
   </dict>
   <key>AssociatedBundleIdentifiers</key>
   <array>
-    <string>com.hoobnn.fanfan</string>
-    <string>com.hoobnn.fanfan.debug</string>
+    <string>com.ikuyu.fanfan</string>
+    <string>com.ikuyu.fanfan.debug</string>
   </array>
   <key>RunAtLoad</key>
   <true/>

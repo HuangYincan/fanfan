@@ -38,6 +38,9 @@
 "settings.launch_at_login_desc" = "登录时自动启动应用";
 "settings.menu_bar_display" = "菜单栏显示";
 "settings.menu_bar_display_desc" = "状态栏中显示的信息";
+"settings.icon_animation" = "图标动画";
+"settings.icon_animation_desc" = "旋转风扇图标会占用少量 CPU，帧率越高占用越多";
+"settings.icon_animation.off" = "静止";
 "settings.monitoring_interval" = "监控间隔";
 "settings.monitoring_interval_desc" = "检查温度的频率（秒）";
 "settings.high_temp_alert" = "高温警报";

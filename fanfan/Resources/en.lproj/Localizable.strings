@@ -38,6 +38,9 @@
 "settings.launch_at_login_desc" = "Automatically start the app when you log in";
 "settings.menu_bar_display" = "Menu Bar Display";
 "settings.menu_bar_display_desc" = "What information to show in the status bar";
+"settings.icon_animation" = "Icon Animation";
+"settings.icon_animation_desc" = "Spinning the fan icon costs a little CPU; higher frame rates cost more";
+"settings.icon_animation.off" = "Still";
 "settings.monitoring_interval" = "Monitoring Interval";
 "settings.monitoring_interval_desc" = "How often to check temperatures (seconds)";
 "settings.high_temp_alert" = "High Temp Alert";

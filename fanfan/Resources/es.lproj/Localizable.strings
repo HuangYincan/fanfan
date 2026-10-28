@@ -38,6 +38,9 @@
 "settings.launch_at_login_desc" = "Iniciar la app automáticamente al iniciar sesión";
 "settings.menu_bar_display" = "Mostrar en la barra de menús";
 "settings.menu_bar_display_desc" = "Información que se muestra en la barra de menús";
+"settings.icon_animation" = "Animación del icono";
+"settings.icon_animation_desc" = "Girar el icono del ventilador consume algo de CPU; más cuanto mayor sea la frecuencia de fotogramas";
+"settings.icon_animation.off" = "Estático";
 "settings.monitoring_interval" = "Intervalo de monitorización";
 "settings.monitoring_interval_desc" = "Frecuencia de lectura de temperaturas (segundos)";
 "settings.high_temp_alert" = "Alerta de temperatura";

@@ -50,7 +50,7 @@ mkdir -p "$EXTRACT_DIR"
 SOURCE_APP="$EXTRACT_DIR/fanfan.app"
 if [ ! -d "$SOURCE_APP" ] || \
    [ ! -f "$SOURCE_APP/Contents/Resources/fanfan-smcd" ] || \
-   [ ! -f "$SOURCE_APP/Contents/Library/LaunchDaemons/com.hoobnn.fanfan.helper.plist" ]; then
+   ! ls "$SOURCE_APP"/Contents/Library/LaunchDaemons/com.*.fanfan.helper.plist >/dev/null 2>&1; then
     echo "❌ Release archive does not contain the expected app/helper files"
     exit 1
 fi

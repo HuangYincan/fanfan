@@ -20,11 +20,12 @@ fanfan.app (user)  ──XPC──▶  fanfan-smcd (root)  ──IOKit──▶ 
   - `RENEWV2` → `OK`，仅在存在活跃控制租约时返回
   - `SETV2 <fan> <rpm>`（fan：0–7；rpm 由守护进程按硬件上下限钳制）
   - `AUTOV2 <fan>`（把控制权交还固件）
-- XPC Mach service `com.hoobnn.fanfan.helper`（同时是 launchd label）。守护进程对每个连接设置签名要求：只接受团队 `8FUPL8QHFH` 签名、identifier 为 `com.hoobnn.fanfan` 或 `com.hoobnn.fanfan.debug` 的客户端；Release 版应用反向校验守护进程（identifier `fanfan-smcd`），Debug 版因守护进程是 ad-hoc 签名而跳过。
+- XPC Mach service `com.ikuyu.fanfan.helper`（同时是 launchd label）。守护进程对每个连接设置签名要求：只接受团队 `8FUPL8QHFH` 签名、identifier 为 `com.ikuyu.fanfan` 或 `com.ikuyu.fanfan.debug` 的客户端；Release 版应用反向校验守护进程（identifier `fanfan-smcd`），Debug 版因守护进程是 ad-hoc 签名而跳过。
 - 手动控制基于租约：SET 活跃时应用每 3 秒续租；10 秒无活动则守护进程恢复固件 AUTO。租约同时绑定在发起 SET 的连接上：应用退出或崩溃、连接失效时立即恢复 AUTO。应用端因此必须保持单条长连接。
-- 由 `SMAppService.daemon(plistName:)` 注册，用户在系统设置「登录项与扩展」里批准一次，无需密码。plist 在 App 内 `Contents/Library/LaunchDaemons/com.hoobnn.fanfan.helper.plist`（源文件 `tools/fanfan-smcd/`，经 Xcode「Copy LaunchDaemon」阶段拷入），`BundleProgram` 指向 `Contents/Resources/fanfan-smcd`，launchd 直接从 App Bundle 运行它。
+- 由 `SMAppService.daemon(plistName:)` 注册，用户在系统设置「登录项与扩展」里批准一次，无需密码。plist 在 App 内 `Contents/Library/LaunchDaemons/com.ikuyu.fanfan.helper.plist`（源文件 `tools/fanfan-smcd/`，经 Xcode「Copy LaunchDaemon」阶段拷入），`BundleProgram` 指向 `Contents/Resources/fanfan-smcd`，launchd 直接从 App Bundle 运行它。
 - 守护进程监视自身可执行文件：App 被更新或删除时先交还风扇再退出，由 `KeepAlive` 拉起新二进制。Sparkle 更新是先原子交换 App 目录、重启 App 后再删除旧包，删除旧包时守护进程收到 `DELETE` 事件，此时同一路径已是新二进制，所以无需额外处理；App 端续租失败会自动重新下发控制。
 - 1.4 之前的版本手工安装系统 LaunchDaemon（`com.hoobnn.fanfan.smcd`、`/Library/PrivilegedHelperTools/fanfan-smcd`、Unix socket）。新守护进程启动时会 bootout 并删除这些旧文件。
+- 1.4–1.8.x 的 bundle ID 前缀是 `com.hoobnn.`（守护进程 label `com.hoobnn.fanfan.helper`）。从这些版本升级后，旧 label 的 job 会拉起新二进制；守护进程据 `XPC_SERVICE_NAME` 识别后 bootout 旧 job，用户需在「登录项与扩展」重新批准新 label。应用首次启动时由 `UserDefaultsManager.migratePreRenameDefaults` 一次性迁入旧偏好域，并按迁入的设置重新注册登录项。
 - **不要在没有充分理由的情况下新增提权提示或跨 XPC 的命令** —— 这个经过审计的最小接口面是刻意为之的安全属性。
 
 两侧代码：`fanfan/Core/SMCDaemonClient.swift` 与 `tools/fanfan-smcd/fanfan-smcd.c`（+ `smc.h`）。改一侧，另一侧几乎总要同步改。
@@ -63,7 +64,7 @@ xcodebuild -project fanfan.xcodeproj -scheme fanfan \
 cp tools/fanfan-smcd/fanfan-smcd fanfan/Resources/fanfan-smcd
 ```
 
-Debug 版（`com.hoobnn.fanfan.debug`）与正式版注册的是同一个 label `com.hoobnn.fanfan.helper`，同一时间只能有一个生效；调试守护进程前先在「登录项与扩展」里关掉正式版的那一项。launchd 对 SMAppService 守护进程施加同团队签名的轻量代码要求（`launchctl print` 显示 `has LWCR`），而 Debug 包里的守护进程是 Makefile ad-hoc 签名，能否被拉起**尚未验证**；端到端验证目前用 Developer ID 签名的 Release 构建（签名方式同 CI）。
+Debug 版（`com.ikuyu.fanfan.debug`）与正式版注册的是同一个 label `com.ikuyu.fanfan.helper`，同一时间只能有一个生效；调试守护进程前先在「登录项与扩展」里关掉正式版的那一项。launchd 对 SMAppService 守护进程施加同团队签名的轻量代码要求（`launchctl print` 显示 `has LWCR`），而 Debug 包里的守护进程是 Makefile ad-hoc 签名，能否被拉起**尚未验证**；端到端验证目前用 Developer ID 签名的 Release 构建（签名方式同 CI）。
 
 `scripts/build-release.sh` 会自动做，手动 debug 构建不会。
 
@@ -114,4 +115,4 @@ Co-Authored-By: Codex <noreply@openai.com>
 - **除 Sparkle 外不加第三方 SDK。** 精简依赖面是刻意为之。
 - **无风扇的 Mac 真实存在。** 部分 MacBook Air 报告没有风扇，UI 完全隐藏控制项而非显示假滑块。不要假定 `fanCount > 0`。
 - **支持逐风扇非对称控制。** 多风扇机器每个风扇有独立滑块 / 目标值，数据结构已如此建模，重构时保留。
-- Mach Service / LaunchDaemon 名称 `com.hoobnn.fanfan.helper` —— 在 plist、守护进程源码、`SMCDaemonClient`、Homebrew cask 及任何新工具中保持一致。旧名 `com.hoobnn.fanfan.smcd` 只用于迁移清理。
+- Mach Service / LaunchDaemon 名称 `com.ikuyu.fanfan.helper` —— 在 plist、守护进程源码、`SMCDaemonClient`、Homebrew cask 及任何新工具中保持一致。旧名 `com.hoobnn.fanfan.smcd`、`com.hoobnn.fanfan.helper` 只用于迁移清理。守护进程的签名 identifier 仍是 `fanfan-smcd`（CI 重签时默认取文件名，改它要同步改签名流程）。

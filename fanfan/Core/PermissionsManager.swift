@@ -33,7 +33,7 @@ class PermissionsManager: ObservableObject {
     /// out of the app bundle, so an app update is also a daemon update.
     /// 中文：位于 `Contents/Library/LaunchDaemons` 的 plist；launchd 直接从 App
     /// Bundle 运行守护进程，App 更新即守护进程更新。
-    private let service = SMAppService.daemon(plistName: "com.hoobnn.fanfan.helper.plist")
+    private let service = SMAppService.daemon(plistName: "com.ikuyu.fanfan.helper.plist")
     
     private init() {
         checkInstallation()

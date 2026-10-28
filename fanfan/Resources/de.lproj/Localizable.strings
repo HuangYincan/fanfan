@@ -38,6 +38,9 @@
 "settings.launch_at_login_desc" = "App automatisch starten, wenn du dich anmeldest";
 "settings.menu_bar_display" = "Anzeige in der Menüleiste";
 "settings.menu_bar_display_desc" = "Welche Informationen in der Menüleiste erscheinen";
+"settings.icon_animation" = "Symbolanimation";
+"settings.icon_animation_desc" = "Das drehende Lüftersymbol kostet etwas CPU – je höher die Bildrate, desto mehr";
+"settings.icon_animation.off" = "Unbewegt";
 "settings.monitoring_interval" = "Messintervall";
 "settings.monitoring_interval_desc" = "Wie oft Temperaturen geprüft werden (Sekunden)";
 "settings.high_temp_alert" = "Hitzewarnung";

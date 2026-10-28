@@ -30,6 +30,8 @@ struct SettingsView: View {
 
     @AppStorage("launchAtLogin")          private var launchAtLogin = false
     @AppStorage("statusBarDisplayMode")   private var statusBarDisplayMode = "temperature"
+    @AppStorage(StatusBarAnimationSettings.userDefaultsKey)
+    private var statusBarIconFPS = StatusBarAnimationSettings.defaultFramesPerSecond
     @AppStorage("monitoringInterval")     private var monitoringInterval = 2.0
     @AppStorage("enableNotifications")    private var enableNotifications = true
     @AppStorage("highTempAlert")          private var highTempAlert = 85.0
@@ -75,6 +77,24 @@ struct SettingsView: View {
                 viewModel.statusBarDisplayMode = newValue
                 NotificationCenter.default.post(
                     name: NSNotification.Name("StatusBarDisplayModeChanged"),
+                    object: newValue
+                )
+            }
+
+            Picker(selection: $statusBarIconFPS) {
+                ForEach(StatusBarAnimationSettings.framesPerSecondOptions, id: \.self) { fps in
+                    if fps == 0 {
+                        Text(NSLocalizedString("settings.icon_animation.off", comment: "")).tag(fps)
+                    } else {
+                        Text(verbatim: "\(fps) fps").tag(fps)
+                    }
+                }
+            } label: {
+                rowLabel("settings.icon_animation")
+            }
+            .onChange(of: statusBarIconFPS) { _, newValue in
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("StatusBarIconFPSChanged"),
                     object: newValue
                 )
             }

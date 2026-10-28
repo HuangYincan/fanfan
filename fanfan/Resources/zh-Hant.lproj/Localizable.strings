@@ -38,6 +38,9 @@
 "settings.launch_at_login_desc" = "登入時自動啟動 App";
 "settings.menu_bar_display" = "選單列顯示";
 "settings.menu_bar_display_desc" = "在狀態列中顯示的資訊";
+"settings.icon_animation" = "圖示動畫";
+"settings.icon_animation_desc" = "旋轉風扇圖示會佔用少量 CPU，影格率越高佔用越多";
+"settings.icon_animation.off" = "靜止";
 "settings.monitoring_interval" = "監控間隔";
 "settings.monitoring_interval_desc" = "檢查溫度的頻率（秒）";
 "settings.high_temp_alert" = "高溫警示";
