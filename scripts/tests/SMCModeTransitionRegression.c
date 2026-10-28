@@ -31,6 +31,7 @@ static unsigned delay_ms;
 static int reject_manual;
 static int require_ftst;
 static int reject_auto_when_locked;
+static int fail_auto_transport;
 static int ftst;
 static int fail_reads_after_write;
 static int read_failures;
@@ -101,6 +102,7 @@ static kern_return_t fake_io_call(mach_port_t connection, uint32_t selector,
             memcpy(output->bytes, &target, sizeof(target));
         }
     } else if (input->data8 == SMC_CMD_WRITE_BYTES) {
+        if (is_mode && input->bytes[0] == 0 && fail_auto_transport) return kIOReturnNotResponding;
         if (is_mode) {
             if ((input->bytes[0] == 1 && (reject_manual || (require_ftst && !ftst))) ||
                 (input->bytes[0] == 0 && reject_auto_when_locked && fans[fan].mode == 3 && !ftst)) {
@@ -142,7 +144,7 @@ static void reset(void)
     for (int fan = 0; fan < MAX_FANS; fan++) {
         g_min_rpm[fan] = 1200; g_max_rpm[fan] = 6000; g_limits_known[fan] = 1;
     }
-    reject_manual = require_ftst = ftst = reject_auto_when_locked = 0;
+    reject_manual = require_ftst = ftst = reject_auto_when_locked = fail_auto_transport = 0;
     fail_reads_after_write = read_failures = 0;
     mode_writes = auto_writes = target_writes = 0;
     shutdown_at = 0;
@@ -302,6 +304,15 @@ static int rejected_cancel_over_locked_mode_completes(void)
     return 0;
 }
 
+static int transport_error_over_locked_mode_stays_pending(void)
+{
+    reset(); require_ftst = 1; g_ftst_avail = 1; ftst = 1; g_ftst_engaged = 1;
+    fans[0].mode = 3; g_manual[0] = 1; g_restore_pending[0] = 1; fail_auto_transport = 1;
+    CHECK(!command_ok("AUTOV2 0"), "a transport error is not proof that firmware owns the fan");
+    CHECK(g_restore_pending[0] && g_lease_state == LEASE_RESTORE_PENDING, "the cancel must be retried");
+    return 0;
+}
+
 int main(void)
 {
     int (*cases[])(void) = { delayed_manual_then_target, delayed_system_restore,
@@ -311,13 +322,14 @@ int main(void)
         existing_system_mode_is_a_fast_noop, shutdown_cancels_acquisition_and_restores,
         synchronous_firmware_does_not_wait, timeout_keeps_other_fans_manual,
         firmware_reclaimed_fan_is_left_alone, stale_locked_readback_is_still_cancelled,
-        rejected_cancel_over_locked_mode_completes };
+        rejected_cancel_over_locked_mode_completes,
+        transport_error_over_locked_mode_stays_pending };
     int failures = 0;
     for (unsigned i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
         int result = cases[i](); failures += result;
         if (!result) printf("PASS: SMC transition case %u\n", i + 1);
     }
     if (failures) return 1;
-    puts("15 SMC mode-transition regressions passed");
+    puts("16 SMC mode-transition regressions passed");
     return 0;
 }
